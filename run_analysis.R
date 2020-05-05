@@ -24,25 +24,21 @@ data <- loadMergedDataSet()
 
 tidy <- data %>%
     # Selects only the necessary information
-    select(subject, activity, group,
-           contains("_mean_"), ends_with("_mean"),
-           contains("_std_"), ends_with("_std"),
-           -contains("angle"), -contains("bodybody")) %>%
+    select(subject, activity, group, contains("mean"), contains("std"), -contains("angle"), -contains("meanFreq")) %>%
     # Calculates the average of every variable grouped by the subject, the activity and the group
     group_by(subject, activity, group) %>%
-    summarise_all(mean) %>%
-    # Gather all measures into a variable and value column
-    gather(variable, value, -(subject:group)) %>%
+    summarise_all(mean)
+
+names(tidy) <- names(tidy) %>%
     # Transform the variable names to detect later separate it by domain, source, sensor, type and axis
-    mutate(variable = tolower(variable)) %>%
-    mutate(variable = sub("^t", "time_", variable)) %>%
-    mutate(variable = sub("^f", "frequency_", variable)) %>%
-    mutate(variable = sub("(body|gravity)(acc|gyro)", "\\1_\\2", variable)) %>%
-    separate(variable, c("domain", "source", "sensor", "type", "axis")) %>%
-    # Detects if the observation is a default signal, a jerk signal or a magnitude
-    mutate(jerk = grepl("jerk", sensor), magnitude = grepl("mag", sensor)) %>%
-    # Removes jerk or mag text from the sensor
-    mutate(sensor = gsub("(jerk|mag)", "", sensor))
+    tolower %>%
+    sub(pattern = "^t", replacement =  "time") %>%
+    sub(pattern = "^f", replacement = "frequency") %>%
+    gsub(pattern = "(body|gravity)", replacement = "_\\1") %>%
+    gsub(pattern = "acc", replacement = "_accelerometer") %>%
+    gsub(pattern = "gyro", replacement = "_gyroscope") %>%
+    gsub(pattern = "jerk", replacement = "_jerk") %>%
+    gsub(pattern = "mag", replacement = "_magnitude")
     
 # Write resulting data set to CSV file
 
